@@ -1,0 +1,16 @@
+name: ScroamDB
+version: 1.0.0
+main: com.scroam.db.ScroamDB
+api-version: '1.21'
+description: ScroamDB - Database and Economy System Plugin
+author: Scroam
+
+commands:
+  scroamdb:
+    description: ScroamDB main command
+    usage: /scroamdb reload
+
+permissions:
+  scroamdb.admin:
+    description: Admin permission
+    default: op
