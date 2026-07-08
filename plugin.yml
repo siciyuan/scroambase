@@ -4,14 +4,11 @@ main: com.scroam.db.ScroamDB
 api-version: '1.21'
 description: ScroamDB - Database and Economy System Plugin with Payment and Treasury
 author: Scroam
-depend: []
-soft-depend: []
 
 commands:
   scroamdb:
     description: ScroamDB main command
     usage: /scroamdb reload
-    permission: scroamdb.admin
   eco:
     description: Economy system commands
     usage: /eco <command> [args...]
@@ -19,14 +16,5 @@ commands:
 
 permissions:
   scroamdb.admin:
-    description: Admin permission for ScroamDB
-    default: op
-  scroamdb.economy.pay:
-    description: Allow to pay other players
-    default: true
-  scroamdb.economy.balance:
-    description: Allow to check balance
-    default: true
-  scroamdb.economy.treasury:
-    description: Allow to manage treasury
+    description: Admin permission
     default: op

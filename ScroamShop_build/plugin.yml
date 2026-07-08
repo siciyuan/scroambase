@@ -1,0 +1,25 @@
+name: ScroamShop
+version: 1.0.1
+main: com.scroam.shop.ScroamShop
+api-version: '1.21'
+description: 收购商店插件 - 支持GUI的物品收购系统
+author: Scroam
+depend: [ScroamDB, ScroamPayment]
+
+commands:
+  shop:
+    description: 打开收购商店
+    usage: /shop [sell|buy|price]
+    permission: scroam.shop.use
+  shopadmin:
+    description: 商店管理命令
+    usage: /shopadmin <reload|setprice|addfunds>
+    permission: scroam.shop.admin
+
+permissions:
+  scroam.shop.use:
+    description: 允许使用商店
+    default: true
+  scroam.shop.admin:
+    description: 允许管理商店
+    default: op

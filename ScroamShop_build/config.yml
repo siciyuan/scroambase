@@ -1,0 +1,6 @@
+treasury:
+  initial-funds: 1000000.0
+
+gui:
+  enabled: true
+  title: "收购商店"

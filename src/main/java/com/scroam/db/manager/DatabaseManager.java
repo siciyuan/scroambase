@@ -2,6 +2,7 @@ package com.scroam.db.manager;
 
 import com.scroam.db.ScroamDB;
 import com.scroam.db.data.*;
+import java.sql.Timestamp;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -127,6 +128,49 @@ public class DatabaseManager {
                     "pending_permissions TEXT DEFAULT ''," +
                     "created_time BIGINT DEFAULT 0" +
                     ")");
+
+            // 服务器公库表
+            stmt.execute("CREATE TABLE IF NOT EXISTS server_treasury (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "balance DECIMAL(18,2) DEFAULT 0," +
+                    "total_tax_collected DECIMAL(18,2) DEFAULT 0," +
+                    "total_deposited DECIMAL(18,2) DEFAULT 0," +
+                    "total_withdrawn DECIMAL(18,2) DEFAULT 0," +
+                    "last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                    ")");
+
+            // 交易记录表
+            stmt.execute("CREATE TABLE IF NOT EXISTS transactions (" +
+                    "id VARCHAR(64) PRIMARY KEY," +
+                    "from_uuid VARCHAR(36)," +
+                    "from_name VARCHAR(32)," +
+                    "to_uuid VARCHAR(36)," +
+                    "to_name VARCHAR(32)," +
+                    "amount DECIMAL(18,2) NOT NULL," +
+                    "tax_amount DECIMAL(18,2) DEFAULT 0," +
+                    "type VARCHAR(32) NOT NULL," +
+                    "service_id VARCHAR(64)," +
+                    "description VARCHAR(255)," +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                    ")");
+
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_from ON transactions(from_uuid)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_to ON transactions(to_uuid)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(created_at)");
+
+            initTreasury();
+        }
+    }
+
+    private void initTreasury() {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM server_treasury")) {
+            if (rs.next() && rs.getInt(1) == 0) {
+                stmt.execute("INSERT INTO server_treasury (balance, total_tax_collected) VALUES (0, 0)");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to initialize treasury: " + e.getMessage());
         }
     }
 
@@ -818,6 +862,158 @@ public class DatabaseManager {
                 rs.getBoolean("requires_permission"),
                 rs.getLong("created_time")
         );
+    }
+
+    // ========== 服务器公库操作 ==========
+
+    public double getTreasuryBalance() {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT balance FROM server_treasury LIMIT 1")) {
+            if (rs.next()) {
+                return rs.getDouble("balance");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get treasury balance: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public boolean depositToTreasury(double amount) {
+        if (amount <= 0) return false;
+        try {
+            String sql = "UPDATE server_treasury SET balance = balance + ?, total_deposited = total_deposited + ?, last_update = CURRENT_TIMESTAMP";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setDouble(1, amount);
+                pstmt.setDouble(2, amount);
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to deposit to treasury: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean withdrawFromTreasury(double amount) {
+        if (amount <= 0) return false;
+        try {
+            String sql = "UPDATE server_treasury SET balance = balance - ?, total_withdrawn = total_withdrawn + ?, last_update = CURRENT_TIMESTAMP WHERE balance >= ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setDouble(1, amount);
+                pstmt.setDouble(2, amount);
+                pstmt.setDouble(3, amount);
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to withdraw from treasury: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean addTaxToTreasury(double amount) {
+        if (amount <= 0) return false;
+        try {
+            String sql = "UPDATE server_treasury SET balance = balance + ?, total_tax_collected = total_tax_collected + ?, last_update = CURRENT_TIMESTAMP";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setDouble(1, amount);
+                pstmt.setDouble(2, amount);
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to add tax to treasury: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public double getTotalTaxCollected() {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT total_tax_collected FROM server_treasury LIMIT 1")) {
+            if (rs.next()) {
+                return rs.getDouble("total_tax_collected");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get total tax collected: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    // ========== 交易记录操作 ==========
+
+    public void saveTransaction(TransactionRecord record) {
+        try {
+            String sql = "INSERT OR REPLACE INTO transactions (" +
+                    "id, from_uuid, from_name, to_uuid, to_name, amount, tax_amount, type, service_id, description) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, record.id);
+                pstmt.setString(2, record.fromUuid != null ? record.fromUuid.toString() : null);
+                pstmt.setString(3, record.fromName);
+                pstmt.setString(4, record.toUuid != null ? record.toUuid.toString() : null);
+                pstmt.setString(5, record.toName);
+                pstmt.setDouble(6, record.amount);
+                pstmt.setDouble(7, record.taxAmount);
+                pstmt.setString(8, record.type.name());
+                pstmt.setString(9, record.serviceId);
+                pstmt.setString(10, record.description);
+                pstmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to save transaction: " + e.getMessage());
+        }
+    }
+
+    public List<TransactionRecord> getTransactions(UUID playerUuid, int limit) {
+        List<TransactionRecord> records = new ArrayList<>();
+        try {
+            String sql = "SELECT * FROM transactions WHERE from_uuid = ? OR to_uuid = ? ORDER BY created_at DESC LIMIT ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, playerUuid.toString());
+                pstmt.setString(2, playerUuid.toString());
+                pstmt.setInt(3, limit);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        records.add(resultSetToTransaction(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get transactions: " + e.getMessage());
+        }
+        return records;
+    }
+
+    public List<TransactionRecord> getTransactionsByType(TransactionRecord.TransactionType type, int limit) {
+        List<TransactionRecord> records = new ArrayList<>();
+        try {
+            String sql = "SELECT * FROM transactions WHERE type = ? ORDER BY created_at DESC LIMIT ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, type.name());
+                pstmt.setInt(2, limit);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        records.add(resultSetToTransaction(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get transactions by type: " + e.getMessage());
+        }
+        return records;
+    }
+
+    private TransactionRecord resultSetToTransaction(ResultSet rs) throws SQLException {
+        TransactionRecord record = new TransactionRecord();
+        record.id = rs.getString("id");
+        record.fromUuid = rs.getString("from_uuid") != null ? UUID.fromString(rs.getString("from_uuid")) : null;
+        record.fromName = rs.getString("from_name");
+        record.toUuid = rs.getString("to_uuid") != null ? UUID.fromString(rs.getString("to_uuid")) : null;
+        record.toName = rs.getString("to_name");
+        record.amount = rs.getDouble("amount");
+        record.taxAmount = rs.getDouble("tax_amount");
+        record.type = TransactionRecord.TransactionType.fromString(rs.getString("type"));
+        record.serviceId = rs.getString("service_id");
+        record.description = rs.getString("description");
+        record.createdAt = rs.getTimestamp("created_at");
+        return record;
     }
 
     public void close() {
