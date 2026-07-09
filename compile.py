@@ -3,17 +3,19 @@ import os
 
 os.chdir(r"C:\Users\scroam\Desktop\scroambase")
 
-javac = r"C:\Users\scroam\Downloads\MSL\Java\21\bin\javac.exe"
+javac = r"D:\Program Files\Java\jdk-21\bin\javac.exe"
+jar = r"D:\Program Files\Java\jdk-21\bin\jar.exe"
+
 libs = [
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\io\papermc\paper\paper-api\1.21.11-R0.1-SNAPSHOT\paper-api-1.21.11-R0.1-SNAPSHOT.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\net\kyori\adventure-api\4.26.1\adventure-api-4.26.1.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\net\kyori\adventure-key\4.26.1\adventure-key-4.26.1.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\net\kyori\adventure-text-minimessage\4.26.1\adventure-text-minimessage-4.26.1.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\net\kyori\adventure-text-serializer-legacy\4.26.1\adventure-text-serializer-legacy-4.26.1.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\net\kyori\adventure-text-serializer-gson\4.26.1\adventure-text-serializer-gson-4.26.1.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\net\md-5\bungeecord-chat\1.21-R0.2-deprecated+build.21\bungeecord-chat-1.21-R0.2-deprecated+build.21.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\com\google\code\gson\gson\2.13.2\gson-2.13.2.jar",
-    r"C:\Users\scroam\Downloads\MSL\Server\libraries\org\sqlite\sqlite-jdbc\3.49.1.0\sqlite-jdbc-3.49.1.0.jar"
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\io\papermc\paper\paper-api\1.21.11-R0.1-SNAPSHOT\paper-api-1.21.11-R0.1-SNAPSHOT.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\net\kyori\adventure-api\4.26.1\adventure-api-4.26.1.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\net\kyori\adventure-key\4.26.1\adventure-key-4.26.1.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\net\kyori\adventure-text-minimessage\4.26.1\adventure-text-minimessage-4.26.1.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\net\kyori\adventure-text-serializer-legacy\4.26.1\adventure-text-serializer-legacy-4.26.1.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\net\kyori\adventure-text-serializer-gson\4.26.1\adventure-text-serializer-gson-4.26.1.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\net\md-5\bungeecord-chat\1.21-R0.2-deprecated+build.21\bungeecord-chat-1.21-R0.2-deprecated+build.21.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\com\google\code\gson\gson\2.13.2\gson-2.13.2.jar",
+    r"C:\Users\scroam\Desktop\MSL\Server\libraries\org\xerial\sqlite-jdbc\3.49.1.0\sqlite-jdbc-3.49.1.0.jar"
 ]
 cp = ";".join(libs)
 srcDir = "src\\main\\java"
@@ -42,7 +44,6 @@ print(f"Exit code: {result.returncode}")
 
 if result.returncode == 0:
     print("\n=== Creating JAR ===")
-    jar = r"C:\Users\scroam\Downloads\MSL\Java\21\bin\jar.exe"
     jarFile = "ScroamDB-1.0.0.jar"
     
     if os.path.exists(jarFile):

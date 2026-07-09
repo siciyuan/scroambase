@@ -5,6 +5,7 @@ import com.scroam.db.manager.LoginManager;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -12,6 +13,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.event.vehicle.VehicleMoveEvent;
 
 public class LoginListener implements Listener {
 
@@ -39,7 +41,7 @@ public class LoginListener implements Listener {
         loginManager.onPlayerQuit(player);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
 
@@ -51,7 +53,28 @@ public class LoginListener implements Listener {
                     from.getBlockY() != to.getBlockY() ||
                     from.getBlockZ() != to.getBlockZ())) {
                 event.setCancelled(true);
+                player.teleport(from);
                 player.sendMessage("§c请先登录后再移动");
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerTeleport(PlayerTeleportEvent event) {
+        Player player = event.getPlayer();
+
+        if (!loginManager.canInteract(player)) {
+            event.setCancelled(true);
+            player.sendMessage("§c请先登录后再传送");
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onVehicleMove(VehicleMoveEvent event) {
+        for (var passenger : event.getVehicle().getPassengers()) {
+            if (passenger instanceof Player player && !loginManager.canInteract(player)) {
+                event.getVehicle().removePassenger(player);
+                player.sendMessage("§c请先登录后再乘坐交通工具");
             }
         }
     }
