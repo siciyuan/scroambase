@@ -2,22 +2,14 @@
 
 # 经济系统设置
 economy:
-  # 启用经济系统
   enabled: true
-  # 货币名称
   currency-name: "Coins"
-  # 转账税率 (0.0 - 1.0)
   transfer-tax: 0.05
-  # 服务税率 - 插件调用支付API时的税率 (0.0 - 1.0)
   service-tax: 0.05
-  # 兑换设置
   exchange:
     enabled: true
-    # 取款/兑换手续费 (0.0 - 1.0)
     withdraw-tax: 0.10
-    # 物品兑换税率 (0.0 - 1.0)
     exchange-tax: 0.05
-    # 物品兑换比率
     rates:
       gold_ingot: 100.0
       gold_nugget: 11.11
@@ -41,3 +33,10 @@ economy:
       charcoal: 8.0
       coal_block: 90.0
       lapis_lazuli: 5.0
+
+# 登录系统设置
+login:
+  enabled: true
+  max-failed-attempts: 5
+  lock-duration-seconds: 300
+  min-password-length: 4

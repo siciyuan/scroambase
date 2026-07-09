@@ -2,7 +2,7 @@ name: ScroamDB
 version: 1.0.0
 main: com.scroam.db.ScroamDB
 api-version: '1.21'
-description: ScroamDB - Database and Economy System Plugin with Payment and Treasury
+description: ScroamDB - Database, Economy and Login System Plugin
 author: Scroam
 depend: []
 soft-depend: []
@@ -16,6 +16,19 @@ commands:
     description: Economy system commands
     usage: /eco <command> [args...]
     aliases: [economy, money]
+  login:
+    description: Login to the server
+    usage: /login <password>
+  register:
+    description: Register a new account
+    usage: /register <password> <confirmPassword>
+  changepassword:
+    description: Change password
+    usage: /changepassword <oldPassword> <newPassword>
+    aliases: [cp]
+  logout:
+    description: Logout from the server
+    usage: /logout
 
 permissions:
   scroamdb.admin:
@@ -29,4 +42,7 @@ permissions:
     default: true
   scroamdb.economy.treasury:
     description: Allow to manage treasury
+    default: op
+  scroamdb.login.bypass:
+    description: Bypass login requirement
     default: op

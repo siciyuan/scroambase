@@ -159,6 +159,22 @@ public class DatabaseManager {
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(created_at)");
 
+            // 用户认证表
+            stmt.execute("CREATE TABLE IF NOT EXISTS user_auth (" +
+                    "uuid VARCHAR(36) PRIMARY KEY," +
+                    "username VARCHAR(16) NOT NULL," +
+                    "password_hash VARCHAR(255) NOT NULL," +
+                    "salt VARCHAR(64) NOT NULL," +
+                    "last_login_ip VARCHAR(45) DEFAULT ''," +
+                    "last_login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                    "registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                    "failed_login_attempts INTEGER DEFAULT 0," +
+                    "locked_until TIMESTAMP DEFAULT NULL" +
+                    ")");
+
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_auth_username ON user_auth(username)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_auth_uuid ON user_auth(uuid)");
+
             initTreasury();
         }
     }
@@ -1014,6 +1030,170 @@ public class DatabaseManager {
         record.description = rs.getString("description");
         record.createdAt = rs.getTimestamp("created_at");
         return record;
+    }
+
+    // ========== 用户认证操作 ==========
+
+    public boolean isRegistered(UUID uuid) {
+        try {
+            String sql = "SELECT COUNT(*) FROM user_auth WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    return rs.next() && rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to check registration: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean registerUser(UUID uuid, String username, String passwordHash, String salt) {
+        try {
+            String sql = "INSERT INTO user_auth (uuid, username, password_hash, salt, registered_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                pstmt.setString(2, username);
+                pstmt.setString(3, passwordHash);
+                pstmt.setString(4, salt);
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to register user: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public String getPasswordHash(UUID uuid) {
+        try {
+            String sql = "SELECT password_hash FROM user_auth WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    return rs.next() ? rs.getString("password_hash") : null;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get password hash: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public String getSalt(UUID uuid) {
+        try {
+            String sql = "SELECT salt FROM user_auth WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    return rs.next() ? rs.getString("salt") : null;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get salt: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public boolean updatePassword(UUID uuid, String newPasswordHash, String newSalt) {
+        try {
+            String sql = "UPDATE user_auth SET password_hash = ?, salt = ? WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, newPasswordHash);
+                pstmt.setString(2, newSalt);
+                pstmt.setString(3, uuid.toString());
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to update password: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateLoginInfo(UUID uuid, String ip) {
+        try {
+            String sql = "UPDATE user_auth SET last_login_ip = ?, last_login_time = CURRENT_TIMESTAMP, failed_login_attempts = 0 WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, ip);
+                pstmt.setString(2, uuid.toString());
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to update login info: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean incrementFailedAttempts(UUID uuid) {
+        try {
+            String sql = "UPDATE user_auth SET failed_login_attempts = failed_login_attempts + 1 WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to increment failed attempts: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public int getFailedLoginAttempts(UUID uuid) {
+        try {
+            String sql = "SELECT failed_login_attempts FROM user_auth WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    return rs.next() ? rs.getInt("failed_login_attempts") : 0;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get failed attempts: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    public boolean lockAccount(UUID uuid, long lockSeconds) {
+        try {
+            String sql = "UPDATE user_auth SET locked_until = DATETIME('now', ?) WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, lockSeconds + " seconds");
+                pstmt.setString(2, uuid.toString());
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to lock account: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean isAccountLocked(UUID uuid) {
+        try {
+            String sql = "SELECT locked_until FROM user_auth WHERE uuid = ? AND locked_until > DATETIME('now')";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to check account lock: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public String getAccountLockTime(UUID uuid) {
+        try {
+            String sql = "SELECT locked_until FROM user_auth WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    return rs.next() ? rs.getString("locked_until") : null;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get lock time: " + e.getMessage());
+            return null;
+        }
     }
 
     public void close() {

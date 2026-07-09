@@ -4,6 +4,7 @@ import com.scroam.db.ScroamDB;
 import com.scroam.db.data.*;
 import com.scroam.db.manager.DatabaseManager;
 import com.scroam.db.manager.EconomyManager;
+import com.scroam.db.manager.LoginManager;
 import com.scroam.db.manager.PaymentManager;
 import com.scroam.db.manager.TreasuryManager;
 import org.bukkit.Location;
@@ -21,6 +22,7 @@ public class ScroamDBAPI {
     private final EconomyManager economy;
     private final TreasuryManager treasury;
     private final PaymentManager payment;
+    private final LoginManager login;
 
     public ScroamDBAPI() {
         instance = this;
@@ -29,6 +31,7 @@ public class ScroamDBAPI {
         this.economy = plugin.getEconomyManager();
         this.treasury = plugin.getTreasuryManager();
         this.payment = plugin.getPaymentManager();
+        this.login = plugin.getLoginManager();
     }
 
     public static ScroamDBAPI getInstance() {
@@ -309,5 +312,43 @@ public class ScroamDBAPI {
 
     public Collection<Waypoint> getAllWaypoints() {
         return db.getAllWaypoints();
+    }
+
+    // ========== 登录认证 API ==========
+
+    public boolean isLoggedIn(UUID playerUuid) {
+        return login.isLoggedIn(playerUuid);
+    }
+
+    public boolean isLoggedIn(Player player) {
+        return login.isLoggedIn(player);
+    }
+
+    public boolean isRegistered(UUID playerUuid) {
+        return login.isRegistered(playerUuid);
+    }
+
+    public boolean isRegistered(Player player) {
+        return login.isRegistered(player);
+    }
+
+    public LoginManager.LoginResult login(Player player, String password) {
+        return login.login(player, password);
+    }
+
+    public LoginManager.LoginResult register(Player player, String password, String confirmPassword) {
+        return login.register(player, password, confirmPassword);
+    }
+
+    public LoginManager.LoginResult changePassword(Player player, String oldPassword, String newPassword) {
+        return login.changePassword(player, oldPassword, newPassword);
+    }
+
+    public void logout(Player player) {
+        login.logout(player);
+    }
+
+    public void logout(UUID playerUuid) {
+        login.logout(playerUuid);
     }
 }

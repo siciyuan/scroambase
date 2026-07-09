@@ -32,3 +32,9 @@ economy:
       charcoal: 8.0
       coal_block: 90.0
       lapis_lazuli: 5.0
+
+login:
+  enabled: true
+  max-failed-attempts: 5
+  lock-duration-seconds: 300
+  min-password-length: 4

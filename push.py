@@ -7,7 +7,7 @@ git_path = r"D:\Program Files\Git\bin\git.exe"
 
 cmds = [
     ["add", "."],
-    ["commit", "-m", "Update: Add economy plugin files"],
+    ["commit", "-m", "Add login system with registration, authentication and session management"],
     ["push", "-u", "origin", "main"]
 ]
 
