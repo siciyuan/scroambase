@@ -29,6 +29,10 @@ commands:
   logout:
     description: Logout from the server
     usage: /logout
+  signin:
+    description: Open sign-in GUI
+    usage: /signin
+    aliases: [签到]
 
 permissions:
   scroamdb.admin:

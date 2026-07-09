@@ -175,6 +175,17 @@ public class DatabaseManager {
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_auth_username ON user_auth(username)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_auth_uuid ON user_auth(uuid)");
 
+            // 签到记录表
+            stmt.execute("CREATE TABLE IF NOT EXISTS sign_in_records (" +
+                    "uuid VARCHAR(36) PRIMARY KEY," +
+                    "last_sign_date INTEGER NOT NULL," +
+                    "total_days INTEGER DEFAULT 0," +
+                    "consecutive_days INTEGER DEFAULT 0" +
+                    ")");
+
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_signin_uuid ON sign_in_records(uuid)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_signin_date ON sign_in_records(last_sign_date)");
+
             initTreasury();
         }
     }
@@ -1194,6 +1205,58 @@ public class DatabaseManager {
             plugin.getLogger().warning("Failed to get lock time: " + e.getMessage());
             return null;
         }
+    }
+
+    // ========== 签到记录操作 ==========
+
+    public SignInRecord getSignInRecord(UUID uuid) {
+        try {
+            String sql = "SELECT * FROM sign_in_records WHERE uuid = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        SignInRecord record = new SignInRecord();
+                        record.uuid = uuid;
+                        record.lastSignDate = rs.getInt("last_sign_date");
+                        record.totalDays = rs.getInt("total_days");
+                        record.consecutiveDays = rs.getInt("consecutive_days");
+                        return record;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to get sign in record: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public boolean updateSignInRecord(UUID uuid, int lastSignDate, int totalDays, int consecutiveDays) {
+        try {
+            String sql = "REPLACE INTO sign_in_records (uuid, last_sign_date, total_days, consecutive_days) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, uuid.toString());
+                pstmt.setInt(2, lastSignDate);
+                pstmt.setInt(3, totalDays);
+                pstmt.setInt(4, consecutiveDays);
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to update sign in record: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean isSignedToday(UUID uuid, int todayDate) {
+        SignInRecord record = getSignInRecord(uuid);
+        return record != null && record.lastSignDate == todayDate;
+    }
+
+    public static class SignInRecord {
+        public UUID uuid;
+        public int lastSignDate;
+        public int totalDays;
+        public int consecutiveDays;
     }
 
     public void close() {

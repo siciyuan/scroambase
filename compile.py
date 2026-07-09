@@ -68,3 +68,16 @@ if result.returncode == 0:
         print(f"\n=== Build successful! ===")
         print(f"JAR: {jarFile}")
         print(f"Size: {os.path.getsize(jarFile)} bytes")
+        
+        print("\n=== Copying to server plugins ===")
+        serverPlugins = r"C:\Users\scroam\Desktop\MSL\Server\plugins"
+        dstFile = os.path.join(serverPlugins, jarFile)
+        
+        cmd = ["xcopy", jarFile, serverPlugins, "/Y"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        print("XCOPY STDOUT:", result.stdout)
+        print("XCOPY STDERR:", result.stderr)
+        print("XCOPY Exit code:", result.returncode)
+        
+        if result.returncode == 0:
+            print(f"\n=== Successfully copied to {dstFile} ===")

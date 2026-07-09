@@ -40,3 +40,10 @@ login:
   max-failed-attempts: 5
   lock-duration-seconds: 300
   min-password-length: 4
+
+# 签到系统设置
+signin:
+  enabled: true
+  base-reward: 100.0
+  consecutive-bonus: 20.0
+  max-consecutive-bonus: 7
