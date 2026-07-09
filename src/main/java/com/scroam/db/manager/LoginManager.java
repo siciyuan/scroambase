@@ -187,11 +187,7 @@ public class LoginManager {
     }
 
     public boolean canInteract(Player player) {
-        return isLoggedIn(player) || isAdmin(player);
-    }
-
-    private boolean isAdmin(Player player) {
-        return player.hasPermission("scroamdb.admin");
+        return isLoggedIn(player);
     }
 
     private String generateSalt() {
